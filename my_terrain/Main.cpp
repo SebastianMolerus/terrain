@@ -19,6 +19,7 @@ float fElapsed = 0.0f;
 float fLastFrame = 0.0f;
 
 float fTest = 0.0f;
+float fTest2 = 0.0f;
 
 using namespace std;
 
@@ -61,11 +62,19 @@ void process_input(GLFWwindow* window) {
 
 	if (glfwGetKey(window, GLFW_KEY_W))
 	{
-		fTest += 0.01;
+		fTest += 0.1;
 	}
 	else if (glfwGetKey(window, GLFW_KEY_S))
 	{
-		fTest -= 0.01;
+		fTest -= 0.1;
+	}
+	else if (glfwGetKey(window, GLFW_KEY_D))
+	{
+		fTest2 += 0.1;
+	}
+	else if (glfwGetKey(window, GLFW_KEY_A))
+	{
+		fTest2 -= 0.1;
 	}
 }
 
@@ -192,14 +201,15 @@ int main()
 	glActiveTexture(GL_TEXTURE0);
 	myShader.Use();
 	myShader.setInt("texture1", 0); // connect sampler in fragment shader with active texture ( GL_TEXTURE0 );
-
+	float xx = 0;
 	//=========================================================================================
 	// MAIN GAME LOOP
+	glfwSetTime(0);
 	while (!glfwWindowShouldClose(window))
 	{
 		// check exit state
 		escape(window);
-
+		
 		process_input(window);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -218,17 +228,26 @@ int main()
 		glm::mat4 projection = glm::mat4(1.0f);
 
 		//projection = glm::perspective(glm::radians(45.0f), (float)_WINDOW_WIDTH / _WINDOW_HEIGHT, 0.1f, 100.0f);
-		projection = glm::ortho(0.0f, (float)_WINDOW_WIDTH, (float)_WINDOW_HEIGHT, 0.0f, -1000.0f, 1000.0f);
+		projection = glm::ortho(0.0f, (float)_WINDOW_WIDTH, (float)_WINDOW_HEIGHT, 0.0f, 0.1f, 1000.0f);
 		glm::vec3 cameraPos   = glm::vec3(0, 0, 3.0f );
 		glm::vec3 cameraFront = glm::vec3(0, 0, -1.0f);
 		glm::vec3 cameraUp    = glm::vec3(0, 1.0f, 0.0f);
 
+		// VIEW
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		
+		float x = (float)glfwGetTime() * 102.4f;
 
-		model = glm::rotate(model, glm::radians(fTest), glm::vec3(0.0f, 1.0f, 0.0f));
-		model = glm::translate<float>(model, glm::vec3(300.0f, 300.0f, 300.0f));
-		model = glm::scale<float>(model, glm::vec3(100, 100, 100));
-	
+		float y = exp(x / 102.4f);
+		
+		view = glm::translate<float>(view, glm::vec3(x , -y, -300.0f));
+		view = glm::translate<float>(view, glm::vec3(50.0f, 700.0f, -300.0f));
+		view = glm::scale<float>(view, glm::vec3(100, 100, 100));
+
+		// model
+		model = glm::rotate(model, glm::radians((float)glfwGetTime() * 50), glm::vec3(0.5f, -1.0f, 1.0f));
+		
+		
 
 		myShader.setMat4("model", model);
 		myShader.setMat4("view", view);
