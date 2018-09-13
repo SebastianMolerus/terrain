@@ -18,8 +18,12 @@
 float fElapsed = 0.0f;
 float fLastFrame = 0.0f;
 
-float fTest = 0.0f;
-float fTest2 = 0.0f;
+float fWS = 0.0f;
+float fAD = 0.0f;
+
+float Zverticles[8 * 8];
+
+
 
 using namespace std;
 
@@ -62,20 +66,67 @@ void process_input(GLFWwindow* window) {
 
 	if (glfwGetKey(window, GLFW_KEY_W))
 	{
-		fTest += 0.1;
+		fWS += 1.1;
 	}
 	else if (glfwGetKey(window, GLFW_KEY_S))
 	{
-		fTest -= 0.1;
+		fWS -= 1.1;
 	}
 	else if (glfwGetKey(window, GLFW_KEY_D))
 	{
-		fTest2 += 0.1;
+		fAD += 1.1;
 	}
 	else if (glfwGetKey(window, GLFW_KEY_A))
 	{
-		fTest2 -= 0.1;
+		fAD -= 1.1;
 	}
+}
+
+void PerlinNoise2D(int nHeight, int nWidth, float* fSeed, int nOctaves, float fBias, float* fOutput)
+{
+
+	// 1D perlin noise
+	for (int x = 0; x < nWidth; x++)
+		for (int y = 0; y < nHeight; y++)
+		{
+			float fNoise = 0.0f;
+			float fScale = 1.0f;
+			float fScaleAcc = 0.0f; // this variable is used to keep output values between 0.0f and 1.0f;
+
+			for (int o = 0; o < nOctaves; o++)
+			{
+				int nPitch = nWidth >> o; // distance between two samples 
+
+				int nSampleX1 = (x / nPitch) * nPitch;
+				int nSampleY1 = (y / nPitch) * nPitch;
+
+				int nSampleX2 = (nSampleX1 + nPitch) % nWidth;
+				int nSampleY2 = (nSampleY1 + nPitch) % nWidth;
+
+				float fBlendX = (float)(x - nSampleX1) / (float)nPitch;  // values 0 - 1.0 on X axis. How far we are on current pitch
+				float fBlendY = (float)(y - nSampleY1) / (float)nPitch;
+
+				float fSampleT = (1.0f - fBlendX) * fSeed[nSampleY1 * nWidth + nSampleX1] + fBlendX * fSeed[nSampleY1 * nWidth + nSampleX2];
+				float fSampleB = (1.0f - fBlendX) * fSeed[nSampleY2 * nWidth + nSampleX1] + fBlendX * fSeed[nSampleY2 * nWidth + nSampleX2];
+
+				fNoise = (fBlendY * (fSampleB - fSampleT) + fSampleT) * fScale;
+				fScaleAcc += fScale;
+				fScale /= fBias;
+			}
+
+			fOutput[y * nWidth + x] = fNoise / fScaleAcc;
+		}
+
+}
+
+void initialize_Zverticles()
+{
+	float* fNoiseSeed2D = new float[8 * 8];
+	srand(time(NULL));
+	for (int i = 0; i < 8 * 8; i++) fNoiseSeed2D[i] = (float)rand() / (float)RAND_MAX;
+
+
+	PerlinNoise2D(8, 8, fNoiseSeed2D, 4, 1.0f, Zverticles);
 }
 
 int main()
@@ -108,103 +159,52 @@ int main()
 	Shader myShader("vertex.txt", "fragment.txt");
 
 
-	float verticles[] = {
-		0.0f, 0.0f, -0.0f,  0.0f, 0.0f,
-		1.0f, 0.0f, -0.0f,  1.0f, 0.0f,
-		1.0f,  1.0f, -0.0f,  1.0f, 1.0f,
-		1.0f,  1.0f, -0.0f,  1.0f, 1.0f,
-		0.0f,  1.0f, -0.0f,  0.0f, 1.0f,
-		0.0f, 0.0f, -0.0f,  0.0f, 0.0f,
+	initialize_Zverticles();
 
-		/*-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f*/
-	};
-
+	// GENERATE BUFFERS
 	unsigned int VAO, VBO, EBO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 
+
+	glm::vec3 positions[16];
+
+	for (int y = 0; y < 4; y++)
+		for (int x = 0; x < 4; x++)
+		{
+			positions[y * 4 + x].x = x;
+			positions[y * 4 + x].y = -y;
+			positions[y * 4 + x].z = Zverticles[y * 4 + x];
+		}
+
+
+
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verticles), verticles, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
 
 	// Object Positions
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(0);
 
-	// Texture positions
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
 
 
-	//=========================================================================================
-	// TEXTURES
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-	unsigned int grass_texture;
-	glGenTextures(1, &grass_texture);
-
-	glBindTexture(GL_TEXTURE_2D, grass_texture);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	int width, height, nrChannels;
-	unsigned char* data = stbi_load("grass2.jpg", &width, &height, &nrChannels, STBI_rgb_alpha);
-
-	if (data)
+	int iIndices[] =
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		std::cerr << "Failed to load texture " << endl;
-	}
-	stbi_image_free(data);
+		0, 4, 1, 5, 2, 6, 3, 7, 16, // First row, then restart
+		4, 8, 5, 9, 6, 10, 7, 11, 16, // Second row, then restart
+		8, 12, 9, 13, 10, 14, 11, 15, // Third row, no restart
+	};
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(iIndices), iIndices, GL_STATIC_DRAW);
+	glEnable(GL_PRIMITIVE_RESTART);
+	glPrimitiveRestartIndex(16);
 
 
-	glActiveTexture(GL_TEXTURE0);
 	myShader.Use();
-	myShader.setInt("texture1", 0); // connect sampler in fragment shader with active texture ( GL_TEXTURE0 );
-	float xx = 0;
-	//=========================================================================================
-	// MAIN GAME LOOP
-	glfwSetTime(0);
 	while (!glfwWindowShouldClose(window))
 	{
 		// check exit state
@@ -227,39 +227,36 @@ int main()
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
 
-		//projection = glm::perspective(glm::radians(45.0f), (float)_WINDOW_WIDTH / _WINDOW_HEIGHT, 0.1f, 100.0f);
-		projection = glm::ortho(0.0f, (float)_WINDOW_WIDTH, (float)_WINDOW_HEIGHT, 0.0f, 0.1f, 1000.0f);
+		projection = glm::perspective(glm::radians(45.0f), (float)_WINDOW_WIDTH / _WINDOW_HEIGHT, 0.1f, 100.0f);
+		/*projection = glm::ortho(0.0f, (float)_WINDOW_WIDTH, (float)_WINDOW_HEIGHT, 0.0f, 0.1f, 1000.0f);
 		glm::vec3 cameraPos = glm::vec3(0, 0, 3.0f);
 		glm::vec3 cameraFront = glm::vec3(0, 0, -1.0f);
-		glm::vec3 cameraUp = glm::vec3(0, 1.0f, 0.0f);
+		glm::vec3 cameraUp = glm::vec3(0, 1.0f, 0.0f);*/
 
 
-		cameraPos.y += (-fTest);
-		cameraPos.x += fTest2;
+
 
 		// VIEW
-		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-		view = glm::translate<float>(view, glm::vec3(50.0f, 50.0f, -300.0f));
-		view = glm::scale<float>(view, glm::vec3(100, 100, 100));
+		//view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		//view = glm::translate<float>(view, glm::vec3(512.0f, 384.0f, -300.0f));
+		//view = glm::scale<float>(view, glm::vec3(100, 100, 100));
 
 
 		myShader.setMat4("projection", projection);
 		myShader.setMat4("view", view);
 
-		for (int y = 0; y<10; y++)
-			for (int x = 0; x < 10; x++)
-			{
-				glm::mat4 model = glm::mat4(1.0f);
-				// model
-				model = glm::translate(model, glm::vec3((float)y, (float)x, 0.0f));
-				//	model = glm::rotate(model, glm::radians(60.f), glm::vec3(-1.0f, 0.0f, 0.0f));
-				//	model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, -1.0f));
 
-				myShader.setMat4("model", model);
+		glm::mat4 model = glm::mat4(1.0f);
+
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -3.0f));
+		model = glm::rotate(model, glm::radians(fWS), glm::vec3(-1.0f, 0.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(fAD), glm::vec3(0.0f, 0.0f, -1.0f));
+
+		myShader.setMat4("model", model);
 
 
-				glDrawArrays(GL_TRIANGLES, 0, 6);
-			}
+		glDrawElements(GL_TRIANGLE_STRIP, 4 * (4 - 1) * 2 + 4 - 2, GL_UNSIGNED_INT, 0);
+
 
 
 
