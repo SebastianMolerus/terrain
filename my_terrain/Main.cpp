@@ -14,8 +14,11 @@
 #define _WINDOW_WIDTH 1024
 #define _WINDOW_HEIGHT 768
 
+
 float fElapsed = 0.0f;
 float fLastFrame = 0.0f;
+
+float fTest = 0.0f;
 
 using namespace std;
 
@@ -29,6 +32,7 @@ void InitializeGLFW() {
 void resize_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
+	
 }
 // exit program
 void escape(GLFWwindow* window)
@@ -51,6 +55,18 @@ void howmanyatribs()
 	int nAttribsCount;
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nAttribsCount);
 	cout << "Max supported attribs: " << nAttribsCount << endl;
+}
+
+void process_input(GLFWwindow* window) {
+
+	if (glfwGetKey(window, GLFW_KEY_W))
+	{
+		fTest += 0.01;
+	}
+	else if (glfwGetKey(window, GLFW_KEY_S))
+	{
+		fTest -= 0.01;
+	}
 }
 
 int main()
@@ -83,13 +99,48 @@ int main()
 	Shader myShader("vertex.txt", "fragment.txt");
 
 
-	float verticles[]{
-	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+	float verticles[] = {
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 		0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
 		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
 		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
 
 	unsigned int VAO, VBO, EBO;
@@ -149,8 +200,9 @@ int main()
 		// check exit state
 		escape(window);
 
+		process_input(window);
 
-
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -165,20 +217,24 @@ int main()
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
 
-		projection = glm::perspective(glm::radians(45.0f), (float)_WINDOW_WIDTH / _WINDOW_HEIGHT, 0.1f, 100.0f);
-		glm::vec3 cameraPos   = glm::vec3(0, sinf(glfwGetTime()) + 3, 3.0f );
-		glm::vec3 cameraFront = glm::vec3(0, -1.0f, -1.0f);
-		glm::vec3 cameraUp    = glm::vec3(0, sinf(glfwGetTime()), -1.0f);
+		//projection = glm::perspective(glm::radians(45.0f), (float)_WINDOW_WIDTH / _WINDOW_HEIGHT, 0.1f, 100.0f);
+		projection = glm::ortho(0.0f, (float)_WINDOW_WIDTH, (float)_WINDOW_HEIGHT, 0.0f, -1000.0f, 1000.0f);
+		glm::vec3 cameraPos   = glm::vec3(0, 0, 3.0f );
+		glm::vec3 cameraFront = glm::vec3(0, 0, -1.0f);
+		glm::vec3 cameraUp    = glm::vec3(0, 1.0f, 0.0f);
 
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-		model = glm::rotate(model, glm::radians((float)glfwGetTime()), glm::vec3(3.0f, 3.0f, 3.0f));
+		model = glm::rotate(model, glm::radians(fTest), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::translate<float>(model, glm::vec3(300.0f, 300.0f, 300.0f));
+		model = glm::scale<float>(model, glm::vec3(100, 100, 100));
+	
 
 		myShader.setMat4("model", model);
 		myShader.setMat4("view", view);
 		myShader.setMat4("projection", projection);
-		//glUniform3fv(glGetUniformLocation(myShader.m_nID, "Color"), sizeof(color), glm::value_ptr(color));
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
