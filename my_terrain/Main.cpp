@@ -33,7 +33,7 @@ void InitializeGLFW() {
 void resize_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
-	
+
 }
 // exit program
 void escape(GLFWwindow* window)
@@ -109,14 +109,14 @@ int main()
 
 
 	float verticles[] = {
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+		0.0f, 0.0f, -0.0f,  0.0f, 0.0f,
+		1.0f, 0.0f, -0.0f,  1.0f, 0.0f,
+		1.0f,  1.0f, -0.0f,  1.0f, 1.0f,
+		1.0f,  1.0f, -0.0f,  1.0f, 1.0f,
+		0.0f,  1.0f, -0.0f,  0.0f, 1.0f,
+		0.0f, 0.0f, -0.0f,  0.0f, 0.0f,
 
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		/*-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
 		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
 		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
@@ -149,7 +149,7 @@ int main()
 		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f*/
 	};
 
 	unsigned int VAO, VBO, EBO;
@@ -184,7 +184,7 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	int width, height, nrChannels;
-	unsigned char* data = stbi_load("grass.jpg", &width, &height, &nrChannels, STBI_rgb_alpha);
+	unsigned char* data = stbi_load("grass2.jpg", &width, &height, &nrChannels, STBI_rgb_alpha);
 
 	if (data)
 	{
@@ -209,7 +209,7 @@ int main()
 	{
 		// check exit state
 		escape(window);
-		
+
 		process_input(window);
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -223,37 +223,49 @@ int main()
 		fLastFrame = fCurrentFrame;
 		setfpstitle(window, "Ruslemo terrain", fElapsed);
 
-		glm::mat4 model = glm::mat4(1.0f);
+
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
 
 		//projection = glm::perspective(glm::radians(45.0f), (float)_WINDOW_WIDTH / _WINDOW_HEIGHT, 0.1f, 100.0f);
 		projection = glm::ortho(0.0f, (float)_WINDOW_WIDTH, (float)_WINDOW_HEIGHT, 0.0f, 0.1f, 1000.0f);
-		glm::vec3 cameraPos   = glm::vec3(0, 0, 3.0f );
+		glm::vec3 cameraPos = glm::vec3(0, 0, 3.0f);
 		glm::vec3 cameraFront = glm::vec3(0, 0, -1.0f);
-		glm::vec3 cameraUp    = glm::vec3(0, 1.0f, 0.0f);
+		glm::vec3 cameraUp = glm::vec3(0, 1.0f, 0.0f);
+
+
+		cameraPos.y += (-fTest);
+		cameraPos.x += fTest2;
 
 		// VIEW
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-		
-		float x = (float)glfwGetTime() * 102.4f;
-
-		float y = exp(x / 102.4f);
-		
-		view = glm::translate<float>(view, glm::vec3(x , -y, -300.0f));
-		view = glm::translate<float>(view, glm::vec3(50.0f, 700.0f, -300.0f));
+		view = glm::translate<float>(view, glm::vec3(50.0f, 50.0f, -300.0f));
 		view = glm::scale<float>(view, glm::vec3(100, 100, 100));
 
-		// model
-		model = glm::rotate(model, glm::radians((float)glfwGetTime() * 50), glm::vec3(0.5f, -1.0f, 1.0f));
-		
-		
 
-		myShader.setMat4("model", model);
-		myShader.setMat4("view", view);
 		myShader.setMat4("projection", projection);
-		
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		myShader.setMat4("view", view);
+
+		for (int y = 0; y<10; y++)
+			for (int x = 0; x < 10; x++)
+			{
+				glm::mat4 model = glm::mat4(1.0f);
+				// model
+				model = glm::translate(model, glm::vec3((float)y, (float)x, 0.0f));
+				//	model = glm::rotate(model, glm::radians(60.f), glm::vec3(-1.0f, 0.0f, 0.0f));
+				//	model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+
+				myShader.setMat4("model", model);
+
+
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+			}
+
+
+
+
+
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
