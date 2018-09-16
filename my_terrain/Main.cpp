@@ -9,7 +9,7 @@
 #include <sstream>
 #include "Shader.h"
 #include "stb_image.h"
-
+#include <vector>
 
 #define _WINDOW_WIDTH 1024
 #define _WINDOW_HEIGHT 768
@@ -21,9 +21,8 @@ float fLastFrame = 0.0f;
 float fWS = 0.0f;
 float fAD = 0.0f;
 
-float Zverticles[8 * 8];
-
-
+const int map_width = 16;
+const int map_height = 16;
 
 using namespace std;
 
@@ -119,14 +118,37 @@ void PerlinNoise2D(int nHeight, int nWidth, float* fSeed, int nOctaves, float fB
 
 }
 
-void initialize_Zverticles()
+// 2d Size
+void Heights(int width, int height, int octaves, float bias, float* heights)
 {
-	float* fNoiseSeed2D = new float[8 * 8];
+	float* fNoiseSeed2D = new float[width * height];
 	srand(time(NULL));
-	for (int i = 0; i < 8 * 8; i++) fNoiseSeed2D[i] = (float)rand() / (float)RAND_MAX;
+	for (int i = 0; i < width * height; i++) fNoiseSeed2D[i] = (float)rand() / (float)RAND_MAX;
+	PerlinNoise2D(width, height, fNoiseSeed2D, octaves, bias, heights);
+}
 
+void SetIndicies(int width, int height, std::vector<int>& indicies )
+{
+	int x = 0;
+	int y = width;
 
-	PerlinNoise2D(8, 8, fNoiseSeed2D, 4, 1.0f, Zverticles);
+	int i = 0;
+	while(y < width* height)
+	{ 
+		indicies.push_back(x);
+		indicies.push_back(y);
+
+		
+		x++; y++;
+
+		if (i == width - 1 && y != width * height -1) {
+			indicies.push_back(width * height); i = 0;
+		}
+		else
+			i++;
+	}	
+
+	indicies.pop_back();
 }
 
 int main()
@@ -159,7 +181,8 @@ int main()
 	Shader myShader("vertex.txt", "fragment.txt");
 
 
-	initialize_Zverticles();
+	float* Noise = new float[map_width * map_height];
+	Heights(map_width, map_height, 3, 2.0f, Noise);
 
 	// GENERATE BUFFERS
 	unsigned int VAO, VBO, EBO;
@@ -170,14 +193,14 @@ int main()
 	glBindVertexArray(VAO);
 
 
-	glm::vec3 positions[16];
+	glm::vec3 positions[map_width * map_height];
 
-	for (int y = 0; y < 4; y++)
-		for (int x = 0; x < 4; x++)
+	for (int y = 0; y < map_height; y++)
+		for (int x = 0; x < map_height; x++)
 		{
-			positions[y * 4 + x].x = x;
-			positions[y * 4 + x].y = -y;
-			positions[y * 4 + x].z = Zverticles[y * 4 + x];
+			positions[y * map_width + x].x = x;
+			positions[y * map_width + x].y = y;
+			positions[y * map_width + x].z = Noise[y * map_width + x] * 10;
 		}
 
 
@@ -193,15 +216,20 @@ int main()
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-	int iIndices[] =
+	vector<int> in;
+	
+	SetIndicies(map_width, map_height, in);
+
+
+	int size = 0;
+	for (std::vector<int>::iterator p = in.begin(); p != in.end(); p++)
 	{
-		0, 4, 1, 5, 2, 6, 3, 7, 16, // First row, then restart
-		4, 8, 5, 9, 6, 10, 7, 11, 16, // Second row, then restart
-		8, 12, 9, 13, 10, 14, 11, 15, // Third row, no restart
-	};
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(iIndices), iIndices, GL_STATIC_DRAW);
+		size += sizeof(int);
+	}
+	
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, in.data() , GL_STATIC_DRAW);
 	glEnable(GL_PRIMITIVE_RESTART);
-	glPrimitiveRestartIndex(16);
+	glPrimitiveRestartIndex(map_height * map_width);
 
 
 	myShader.Use();
@@ -216,53 +244,38 @@ int main()
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
 		// set fps title
 		float fCurrentFrame = (float)glfwGetTime();
 		fElapsed = fCurrentFrame - fLastFrame;
 		fLastFrame = fCurrentFrame;
 		setfpstitle(window, "Ruslemo terrain", fElapsed);
 
-
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 projection = glm::mat4(1.0f);
-
-		projection = glm::perspective(glm::radians(45.0f), (float)_WINDOW_WIDTH / _WINDOW_HEIGHT, 0.1f, 100.0f);
-		/*projection = glm::ortho(0.0f, (float)_WINDOW_WIDTH, (float)_WINDOW_HEIGHT, 0.0f, 0.1f, 1000.0f);
-		glm::vec3 cameraPos = glm::vec3(0, 0, 3.0f);
-		glm::vec3 cameraFront = glm::vec3(0, 0, -1.0f);
-		glm::vec3 cameraUp = glm::vec3(0, 1.0f, 0.0f);*/
-
-
-
-
-		// VIEW
-		//view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-		//view = glm::translate<float>(view, glm::vec3(512.0f, 384.0f, -300.0f));
-		//view = glm::scale<float>(view, glm::vec3(100, 100, 100));
-
-
-		myShader.setMat4("projection", projection);
-		myShader.setMat4("view", view);
-
-
 		glm::mat4 model = glm::mat4(1.0f);
 
-		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -3.0f));
+		//projection = glm::perspective(glm::radians(45.0f), (float)_WINDOW_WIDTH / _WINDOW_HEIGHT, 0.1f, 100.0f);
+		projection = glm::ortho(0.0f, (float)_WINDOW_WIDTH, (float)_WINDOW_HEIGHT, 0.0f, 0.1f, 2000.0f);
+
+
+
+		// VIEW	
+		glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 300.0f);
+		glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -50.0f);
+		glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+		view = glm::lookAt(cameraPos, cameraFront, cameraUp);
+		view = glm::translate(view, glm::vec3(25.f, 75.f, -500.0f));
+
+		// Model
 		model = glm::rotate(model, glm::radians(fWS), glm::vec3(-1.0f, 0.0f, 0.0f));
 		model = glm::rotate(model, glm::radians(fAD), glm::vec3(0.0f, 0.0f, -1.0f));
+		model = glm::scale<float>(model, glm::vec3(50.0f, 50.f, 50.f));
 
+		myShader.setMat4("projection", projection);
 		myShader.setMat4("model", model);
+		myShader.setMat4("view", view);
 
-
-		glDrawElements(GL_TRIANGLE_STRIP, 4 * (4 - 1) * 2 + 4 - 2, GL_UNSIGNED_INT, 0);
-
-
-
-
-
-
-
+		glDrawElements(GL_TRIANGLE_STRIP, in.size(), GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
